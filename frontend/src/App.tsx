@@ -3,9 +3,10 @@ import { Navigate, Route, Routes, useLocation } from 'react-router'
 
 import { useAuth } from '@/lib/auth'
 import { HomePage } from '@/pages/home-page'
+import { AuthCallbackPage } from '@/pages/auth-callback-page'
 import { LoginPage } from '@/pages/login-page'
 import { ProfilePage } from '@/pages/profile-page'
-import { SignupPage } from '@/pages/signup-page'
+import { SignedOutPage } from '@/pages/signed-out-page'
 
 /** Sends signed-out visitors to the login page, remembering where they were going. */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -17,7 +18,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return children
 }
 
-/** Login and signup make no sense once signed in. */
+/** Sign-in and the signed-out page make no sense once signed in. */
 function GuestOnly({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   if (user === undefined) return null
@@ -54,13 +55,14 @@ export default function App() {
         }
       />
       <Route
-        path="/signup"
+        path="/signed-out"
         element={
           <GuestOnly>
-            <SignupPage />
+            <SignedOutPage />
           </GuestOnly>
         }
       />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   )

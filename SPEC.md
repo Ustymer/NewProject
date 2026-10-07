@@ -209,12 +209,12 @@ Built with shadcn/ui components; routing with `react-router`.
 | `/` | redirects to `/home` | — |
 | `/home` | Meetings (below) | signed in; otherwise redirect to `/login`, then back |
 | `/profile` | Profile (below) | signed in; otherwise redirect to `/login`, then back |
-| `/login` | Login | signed out; otherwise redirect to `/home` |
-| `/signup` | Signup | signed out; otherwise redirect to `/home` |
+| `/login` | Login | signed out; starts the sign-in at once: redirect to Cognito's managed login (email + password with sign-up, or Continue with Google); otherwise redirect to `/home` |
+| `/auth/callback` | Callback | where Cognito returns with `?code=`; finishes the sign-in, then goes to the page the user wanted |
+| `/signed-out` | Signed out | where Cognito's `/logout` returns; has a Sign in button |
 | anything else | redirects to `/home` | — |
 
-- **Login**: "Continue with Google" button, then email + password (show/hide toggle) and **Sign in**. Link to signup.
-- **Signup**: "Sign up with Google" button, then name, email, password (min 8 characters), confirm password (must match) and **Create account**. Link to login.
+- **Login**: no form of our own. Opening `/login` sends the browser to Cognito's managed login (version 2), which shows the email + password form (with sign-up and email code) and **Continue with Google**. A **Sign in** button on the page repeats the redirect if it is interrupted.
 - Forms use react-hook-form + zod. Errors appear under the fields; a failed request shows its message above the submit button.
 - The meetings top bar shows the user's initial (name and email on hover; links to `/profile`) and a **Sign out** button.
 - **Profile** (`/profile`): a back arrow to `/home`, the user's initial, name and email, then one card per change. The changes go to Cognito directly (Amplify); the app then refreshes the tokens, and the backend copies the new name and email from the ID token on the next request.

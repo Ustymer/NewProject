@@ -92,7 +92,7 @@ Resources:
         Comment: !Sub ${ProjectName} frontend
         Enabled: true
         DefaultRootObject: index.html
-        # Client-side routes (/home, /login, /signup) are not files in the bucket: S3 answers
+        # Client-side routes (/home, /login, /auth/callback) are not files in the bucket: S3 answers
         # 403 for them, so serve index.html and let the router take over.
         CustomErrorResponses:
           - ErrorCode: 403

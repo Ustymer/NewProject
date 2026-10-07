@@ -85,14 +85,22 @@ export function HomePage() {
               >
                 {user.name.charAt(0).toUpperCase()}
               </Link>
+              <span
+                className="max-w-56 truncate text-sm text-muted-foreground max-md:hidden"
+                title={user.email}
+              >
+                {user.email}
+              </span>
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="sm"
                 aria-label="Sign out"
                 title="Sign out"
                 onClick={signOut}
+                className="max-md:size-8 max-md:p-0"
               >
                 <LogOutIcon />
+                <span className="max-md:hidden">Sign out</span>
               </Button>
             </div>
           )}

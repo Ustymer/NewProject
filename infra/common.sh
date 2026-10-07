@@ -64,7 +64,7 @@ update_backend_cors() {
 }
 
 # app_urls: the origins the frontend runs on (local dev servers, CloudFront, custom domain);
-# Cognito only redirects back (OAuth, e.g. Google) to <origin>/login for these.
+# Cognito only redirects back to <origin>/auth/callback (sign-in) and <origin>/signed-out for these.
 app_urls() {
   local urls="http://localhost:5173,http://localhost:3000" url
   if stack_exists "$FRONTEND_STACK"; then

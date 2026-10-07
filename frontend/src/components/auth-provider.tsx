@@ -3,7 +3,7 @@ import { Hub } from 'aws-amplify/utils'
 import { signOut as cognitoSignOut } from 'aws-amplify/auth'
 import { useEffect, useState, type ReactNode } from 'react'
 
-import { AuthContext, authConfigured, loadUser, type User } from '@/lib/auth'
+import { AuthContext, authConfigured, loadUser, markSigningOut, type User } from '@/lib/auth'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -32,6 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = (next: User) => setUser(next)
   const signOut = async () => {
+    // Clears the local session, then Amplify sends the browser to Cognito's /logout, which
+    // ends the managed-login session and returns to /signed-out.
+    markSigningOut()
     await cognitoSignOut()
     setUser(null)
     queryClient.clear()

@@ -1,135 +1,61 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate } from 'react-router'
-import { z } from 'zod'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router'
 
-import {
-  AuthLayout,
-  AuthNotConfigured,
-  GoogleButton,
-  OrDivider,
-  PasswordInput,
-} from '@/components/auth-layout'
+import { AuthLayout, AuthNotConfigured } from '@/components/auth-layout'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { authConfigured, NeedsConfirmationError, useGoogleLogin, useLogin } from '@/lib/auth'
+import { authConfigured, isSigningOut, startSignIn } from '@/lib/auth'
 
-const loginSchema = z.object({
-  email: z.email('Enter a valid email'),
-  password: z.string().min(1, 'Enter your password'),
-})
+type LocationState = { from?: string } | null
 
-type LoginValues = z.infer<typeof loginSchema>
-
-type LocationState = {
-  /** Where the user was headed before being sent to the login page. */
-  from?: string
-  /** A message from the previous page, e.g. after confirming the email. */
-  notice?: string
-  email?: string
-} | null
-
+/**
+ * The URL to hand in: opening it sends the browser straight to Cognito's managed login,
+ * which offers email + password (with sign-up) and "Continue with Google". The redirect
+ * must start here: the library keeps the OAuth state and the PKCE verifier in this browser,
+ * and the callback page needs them to accept the code.
+ */
 export function LoginPage() {
-  const navigate = useNavigate()
-  const state = useLocation().state as LocationState
-  const from = state?.from ?? '/home'
-  const login = useLogin()
-  const googleLogin = useGoogleLogin()
-  const pending = login.isPending || googleLogin.isPending
-  const form = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: state?.email ?? '', password: '' },
-  })
+  const from = (useLocation().state as LocationState)?.from
+  const [error, setError] = useState<string | null>(null)
+  const started = useRef(false)
 
-  const onError = (error: Error) => {
-    // An unverified account: finish the signup by entering the emailed code.
-    if (error instanceof NeedsConfirmationError) {
-      navigate('/signup', { state: { confirmEmail: error.email } })
-      return
+  const go = () => {
+    setError(null)
+    // Where to land after the round trip through Cognito (read on /auth/callback).
+    try {
+      if (from) sessionStorage.setItem('auth:from', from)
+    } catch {
+      // Storage can be blocked; the user then lands on /home.
     }
-    form.setError('root', { message: error.message })
+    startSignIn().catch((e: unknown) =>
+      setError(e instanceof Error ? e.message : 'Could not start sign-in'),
+    )
   }
 
-  const onSubmit = form.handleSubmit((values) =>
-    login.mutate(values, { onSuccess: () => navigate(from, { replace: true }), onError }),
-  )
+  useEffect(() => {
+    // StrictMode runs effects twice in development; one redirect is enough. Signing out
+    // sends the browser to Cognito's /logout, which must not be overridden by a new sign-in.
+    if (!authConfigured || started.current || isSigningOut()) return
+    started.current = true
+    go()
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- runs once, on load
+  }, [])
 
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to see your meetings."
-      footer={
-        <>
-          New here?{' '}
-          <Link
-            to="/signup"
-            className="font-semibold text-hover underline-offset-4 hover:underline"
-          >
-            Create an account
-          </Link>
-        </>
-      }
+      subtitle="Taking you to the sign-in page..."
+      footer="Email and password, or your Google account."
     >
       {!authConfigured && <AuthNotConfigured />}
-      {state?.notice && (
-        <Alert>
-          <AlertDescription>{state.notice}</AlertDescription>
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <GoogleButton
-        disabled={pending || !authConfigured}
-        pending={googleLogin.isPending}
-        onClick={() => googleLogin.mutate(undefined, { onError })}
-      >
-        Continue with Google
-      </GoogleButton>
-      <OrDivider />
-      <form onSubmit={onSubmit} noValidate>
-        <FieldGroup className="gap-4 short:gap-3">
-          <Controller
-            name="email"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="login-email">Email</FieldLabel>
-                <Input
-                  id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  autoFocus
-                  aria-invalid={fieldState.invalid}
-                  {...field}
-                />
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
-          <Controller
-            name="password"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="login-password">Password</FieldLabel>
-                <PasswordInput
-                  id="login-password"
-                  autoComplete="current-password"
-                  aria-invalid={fieldState.invalid}
-                  {...field}
-                />
-                <FieldError errors={[fieldState.error]} />
-              </Field>
-            )}
-          />
-          {form.formState.errors.root && (
-            <FieldError>{form.formState.errors.root.message}</FieldError>
-          )}
-          <Button type="submit" className="mt-1 w-full" disabled={pending || !authConfigured}>
-            {login.isPending ? 'Signing in...' : 'Sign in'}
-          </Button>
-        </FieldGroup>
-      </form>
+      <Button type="button" className="w-full" disabled={!authConfigured} onClick={go}>
+        Sign in
+      </Button>
     </AuthLayout>
   )
 }

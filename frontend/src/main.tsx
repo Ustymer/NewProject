@@ -8,7 +8,7 @@ import { AuthProvider } from '@/components/auth-provider'
 import { configureAuth } from '@/lib/auth'
 import App from './App.tsx'
 import './index.css'
-// Completes the Google (OAuth) redirect when the browser comes back to /login.
+// Completes the sign-in when the browser comes back from Cognito to /auth/callback.
 import 'aws-amplify/auth/enable-oauth-listener'
 
 configureAuth()
