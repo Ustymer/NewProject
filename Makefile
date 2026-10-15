@@ -7,7 +7,7 @@ s ?=
 
 .DEFAULT_GOAL := help
 .PHONY: help env build up down restart logs ps migrate migration seed psql test lint format \
-	dev-backend dev-frontend install clean deploy deploy-auth deploy-backend deploy-frontend destroy-auth destroy-backend destroy-frontend add-domain remove-domain infra-lint
+	dev-backend dev-frontend install clean deploy deploy-auth deploy-backend deploy-frontend destroy-auth destroy-backend destroy-frontend add-domain remove-domain infra-lint deploy-reports report-now
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(firstword $(MAKEFILE_LIST)) | \
@@ -106,6 +106,11 @@ destroy-backend: env ## Delete the AWS backend stacks (keeps a final DB snapshot
 
 destroy-frontend: env ## Delete the S3 bucket, CloudFront distribution and domain certificate
 	@$(AWS_ENV) ./infra/destroy-frontend.sh
+deploy-reports: env ## Deploy the weekly report (after deploy-backend)
+	@$(AWS_ENV) REPORT_EMAIL="$(REPORT_EMAIL)" SCHEDULE_EXPRESSION="$(SCHEDULE_EXPRESSION)" FAIL_WEEK="$(FAIL_WEEK)" ./infra/deploy-reports.sh
 
+report-now: env ## Build a report now: make report-now WEEK=2026-W41
+	@test -n "$(WEEK)" || (echo 'Usage: make report-now WEEK=2026-W41' && exit 1)
+	@$(AWS_ENV) ./infra/report-now.sh "$(WEEK)"
 infra-lint: ## Lint the CloudFormation templates
 	uvx cfn-lint infra/*.yaml

@@ -35,3 +35,10 @@ api.include_router(me.router)
 api.include_router(meetings.router)
 api.include_router(participants.router, dependencies=[Depends(get_current_user)])
 app.include_router(api)
+
+import os  # noqa: E402
+
+if os.getenv("REPORTS_WORKER"):
+    from app.reports.events import router as events_router  # noqa: E402
+
+    app.include_router(events_router)
