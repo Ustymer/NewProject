@@ -114,3 +114,10 @@ report-now: env ## Build a report now: make report-now WEEK=2026-W41
 	@$(AWS_ENV) ./infra/report-now.sh "$(WEEK)"
 infra-lint: ## Lint the CloudFormation templates
 	uvx cfn-lint infra/*.yaml
+
+.PHONY: llm-hello parse
+llm-hello: ## First call to Claude on Bedrock
+	cd backend && set -a && . ../.env && set +a && uv run python -m app.ai.hello
+
+parse: ## Parse an agenda: make parse TEXT="..."
+	cd backend && set -a && . ../.env && set +a && PARSE_TEXT="$$TEXT" uv run python -m app.ai.cli

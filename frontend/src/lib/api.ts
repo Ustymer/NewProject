@@ -8,6 +8,21 @@ export type Participant = {
   email: string
 }
 
+export type AgendaSuggestion = {
+  title: string
+  starts_at: string
+  duration_minutes: number | null
+  items: { topic: string; owner: string | null; minutes: number | null }[]
+  action_items: { task: string; owner: string | null; due: string | null }[]
+  language: string
+}
+
+export type AgendaParseResponse = {
+  agenda: AgendaSuggestion
+  model: string
+  prompt_version: string
+}
+
 export type Meeting = {
   id: string
   title: string
@@ -17,6 +32,7 @@ export type Meeting = {
   place: string
   participants: Participant[]
   created_at: string
+  ai_suggestion?: AgendaSuggestion | null
 }
 
 export type MeetingCreate = {
@@ -26,6 +42,7 @@ export type MeetingCreate = {
   ends_at: string
   place: string
   participant_ids: string[]
+  ai_suggestion?: AgendaSuggestion | null
 }
 
 export type ParticipantCreate = {
@@ -92,6 +109,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  parseAgenda: (text: string, today: string, tz = 'Europe/Kyiv') =>
+    request<AgendaParseResponse>('/agenda/parse', {
+      method: 'POST',
+      body: JSON.stringify({ text, today, tz }),
+    }),
   listMeetings: () => request<Meeting[]>('/meetings'),
   createMeeting: (data: MeetingCreate) =>
     request<Meeting>('/meetings', { method: 'POST', body: JSON.stringify(data) }),

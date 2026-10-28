@@ -17,6 +17,8 @@ services:
       retries: 10
 
   backend:
+    env_file:
+      - .env
     build: ./backend
     restart: unless-stopped
     environment:

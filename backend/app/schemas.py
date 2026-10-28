@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated
@@ -9,6 +10,7 @@ from pydantic import (
     EmailStr,
     StringConstraints,
     field_serializer,
+    field_validator,
     model_validator,
 )
 
@@ -53,6 +55,15 @@ class MeetingCreate(BaseModel):
     place: Annotated[NonEmptyStr, StringConstraints(max_length=200)]
     participant_ids: list[uuid.UUID] = []
 
+    ai_suggestion: dict | None = None
+
+    @field_validator("ai_suggestion")
+    @classmethod
+    def limit_suggestion(cls, value: dict | None) -> dict | None:
+        if value is not None and len(json.dumps(value)) > 20_000:
+            raise ValueError("ai_suggestion is too large")
+        return value
+
     @model_validator(mode="after")
     def check_times(self) -> MeetingCreate:
         if self.ends_at <= self.starts_at:
@@ -67,6 +78,7 @@ class MeetingRead(BaseModel):
 
     id: uuid.UUID
     title: str
+    ai_suggestion: dict | None = None
     description: str
     starts_at: datetime
     ends_at: datetime

@@ -19,7 +19,9 @@ def events(event: dict = Body(...)):
         try:
             body = json.loads(rec["body"])
             week = body.get("week") or current_previous_week()
-            log.info("report-builder triggered trigger=%s via=sqs week=%s", body.get("source"), week)
+            log.info(
+                "report-builder triggered trigger=%s via=sqs week=%s", body.get("source"), week
+            )
             if os.environ.get("FAIL_WEEK") == week:
                 raise RuntimeError("forced failure")
             key = report_key(week)

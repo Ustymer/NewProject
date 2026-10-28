@@ -12,6 +12,7 @@ from sqlalchemy import (
     Uuid,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -73,6 +74,9 @@ class Meeting(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # What the LLM suggested when the meeting was created from pasted text, with model and prompt
+    # version. Compared with the saved fields it shows how often people correct the parser.
+    ai_suggestion: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     participants: Mapped[list[Participant]] = relationship(
         secondary=meeting_participants,

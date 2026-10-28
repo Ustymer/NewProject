@@ -5,6 +5,7 @@ import { CalendarIcon } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { api } from '@/lib/api'
 
 import { ParticipantPicker } from '@/components/participant-picker'
 import { Button } from '@/components/ui/button'
@@ -95,6 +96,8 @@ type Props = {
 
 export function MeetingFormDialog({ open, onOpenChange, meeting, initialStart }: Props) {
   const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [agendaText, setAgendaText] = useState('')
+  const [isParsingAgenda, setIsParsingAgenda] = useState(false)
   const createMeeting = useCreateMeeting()
   const updateMeeting = useUpdateMeeting()
   const isEditing = Boolean(meeting)
@@ -111,6 +114,53 @@ export function MeetingFormDialog({ open, onOpenChange, meeting, initialStart }:
   }, [open, meeting, initialStart, form])
 
   const close = (next: boolean) => onOpenChange(next)
+  const parseAgenda = async () => {
+    if (!agendaText.trim()) {
+      toast.error('Paste the agenda text first')
+      return
+    }
+
+    setIsParsingAgenda(true)
+    try {
+      const result = await api.parseAgenda(
+        agendaText.trim(),
+        format(new Date(), 'yyyy-MM-dd'),
+        'Europe/Kyiv',
+      )
+      const agenda = result.agenda
+      const start = new Date(agenda.starts_at)
+
+      form.setValue('title', agenda.title, { shouldValidate: true })
+
+      if (!Number.isNaN(start.getTime())) {
+        form.setValue('date', start, { shouldValidate: true })
+        form.setValue('startTime', format(start, 'HH:mm'), {
+          shouldValidate: true,
+        })
+        const duration = agenda.duration_minutes ?? 60
+        const end = addHours(start, duration / 60)
+        form.setValue(
+          'endTime',
+          isSameDay(start, end) ? format(end, 'HH:mm') : '23:59',
+          { shouldValidate: true },
+        )
+      }
+
+      const description = [
+        ...agenda.items.map((item) => `• ${item.topic}`),
+        ...agenda.action_items.map(
+          (item) => `Action: ${item.task}${item.owner ? ` — ${item.owner}` : ''}`,
+        ),
+      ].join('\n')
+
+      form.setValue('description', description, { shouldValidate: true })
+      toast.success('Agenda parsed. Review the fields before saving.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not parse agenda')
+    } finally {
+      setIsParsingAgenda(false)
+    }
+  }
 
   const onSubmit = form.handleSubmit((values) => {
     const data = {
@@ -151,6 +201,24 @@ export function MeetingFormDialog({ open, onOpenChange, meeting, initialStart }:
           className="-mx-6 overflow-y-auto px-6 py-1"
         >
           <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="agenda-text">Paste an agenda</FieldLabel>
+              <Textarea
+                id="agenda-text"
+                rows={4}
+                placeholder="Paste meeting notes or an agenda here..."
+                value={agendaText}
+                onChange={(event) => setAgendaText(event.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isParsingAgenda || !agendaText.trim()}
+                onClick={parseAgenda}
+              >
+                {isParsingAgenda ? 'Parsing...' : 'Parse agenda with AI'}
+              </Button>
+            </Field>
             <Controller
               name="title"
               control={form.control}
