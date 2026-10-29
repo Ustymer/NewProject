@@ -83,8 +83,6 @@ AWS_ENV := AWS_ACCESS_KEY_ID="$(AWS_ACCESS_KEY_ID)" AWS_SECRET_ACCESS_KEY="$(AWS
 
 deploy: deploy-backend deploy-frontend ## Deploy the whole app to AWS (after make deploy-auth)
 
-deploy-auth: env ## Deploy Cognito (user pool + app client), print its settings and write them to .env
-	@$(AWS_ENV) ./infra/deploy-auth.sh
 
 deploy-backend: env ## Deploy backend (Lambda) + database (Aurora Serverless) to AWS, see infra/
 	@$(AWS_ENV) ./infra/deploy-backend.sh
@@ -98,16 +96,12 @@ add-domain: env ## Attach DOMAIN_NAME from .env to the deployed frontend
 remove-domain: env ## Detach the custom domain and delete its certificate
 	@$(AWS_ENV) ./infra/remove-domain.sh
 
-destroy-auth: env ## Delete the Cognito stack (the user pool and its accounts are kept)
-	@$(AWS_ENV) ./infra/destroy-auth.sh
 
 destroy-backend: env ## Delete the AWS backend stacks (keeps a final DB snapshot)
 	@$(AWS_ENV) ./infra/destroy-backend.sh
 
 destroy-frontend: env ## Delete the S3 bucket, CloudFront distribution and domain certificate
 	@$(AWS_ENV) ./infra/destroy-frontend.sh
-deploy-reports: env ## Deploy the weekly report (after deploy-backend)
-	@$(AWS_ENV) REPORT_EMAIL="$(REPORT_EMAIL)" SCHEDULE_EXPRESSION="$(SCHEDULE_EXPRESSION)" FAIL_WEEK="$(FAIL_WEEK)" ./infra/deploy-reports.sh
 
 report-now: env ## Build a report now: make report-now WEEK=2026-W41
 	@test -n "$(WEEK)" || (echo 'Usage: make report-now WEEK=2026-W41' && exit 1)
@@ -121,3 +115,8 @@ llm-hello: ## First call to Claude on Bedrock
 
 parse: ## Parse an agenda: make parse TEXT="..."
 	cd backend && set -a && . ../.env && set +a && PARSE_TEXT="$$TEXT" uv run python -m app.ai.cli
+
+.PHONY: infra-plan
+infra-plan: ## Check the Terraform code (fmt + validate). The real plan and apply run in HCP Terraform after a push
+	cd infra && terraform fmt -check -recursive && terraform init -backend=false -input=false >/dev/null && terraform validate
+	@echo "Plan and apply run in HCP Terraform (workspace new-project-lab7) after a push or merge. No terraform apply here."
