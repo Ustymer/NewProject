@@ -22,15 +22,23 @@ Resources:
   # ---- S3 gateway endpoint (own route table for the two private subnets)
   RouteTable:
     Type: AWS::EC2::RouteTable
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties: {VpcId: !Ref VpcId}
   AssocA:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties: {SubnetId: !Ref SubnetA, RouteTableId: !Ref RouteTable}
   AssocB:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties: {SubnetId: !Ref SubnetB, RouteTableId: !Ref RouteTable}
   S3Endpoint:
     Type: AWS::EC2::VPCEndpoint
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       VpcId: !Ref VpcId
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
@@ -40,6 +48,8 @@ Resources:
   # ---- Bucket (explicit name avoids the circular dependency with the S3 permission)
   Bucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     DependsOn: MailerPermission
     Properties:
       BucketName: !Sub ${ProjectName}-reports-${AWS::AccountId}
@@ -60,6 +70,8 @@ Resources:
 
   MailerPermission:
     Type: AWS::Lambda::Permission
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       FunctionName: !Ref MailerFunction
       Action: lambda:InvokeFunction
@@ -70,11 +82,15 @@ Resources:
   # ---- Queue + DLQ
   Dlq:
     Type: AWS::SQS::Queue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       QueueName: !Sub ${ProjectName}-report-requests-dlq
       MessageRetentionPeriod: 1209600
   Queue:
     Type: AWS::SQS::Queue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       QueueName: !Sub ${ProjectName}-report-requests
       VisibilityTimeout: 600 # >= 6 x builder timeout (90 s)
@@ -85,9 +101,13 @@ Resources:
   # ---- Builder (in the VPC, same image as the API)
   BuilderLogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties: {LogGroupName: !Sub "/${ProjectName}/report-builder", RetentionInDays: 7}
   BuilderRole:
     Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -106,6 +126,8 @@ Resources:
                 Resource: !Sub "arn:aws:s3:::${ProjectName}-reports-${AWS::AccountId}/reports/*"
   BuilderFunction:
     Type: AWS::Lambda::Function
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     DependsOn: [S3Endpoint, AssocA, AssocB]
     Properties:
       FunctionName: !Sub ${ProjectName}-report-builder
@@ -135,6 +157,8 @@ Resources:
           AWS_LWA_PASS_THROUGH_PATH: /events
   QueueMapping:
     Type: AWS::Lambda::EventSourceMapping
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       EventSourceArn: !GetAtt Queue.Arn
       FunctionName: !Ref BuilderFunction
@@ -144,6 +168,8 @@ Resources:
   # ---- Schedule
   SchedulerRole:
     Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -157,6 +183,8 @@ Resources:
               - {Effect: Allow, Action: "sqs:SendMessage", Resource: !GetAtt Queue.Arn}
   Schedule:
     Type: AWS::Scheduler::Schedule
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       Name: !Sub ${ProjectName}-weekly-report
       ScheduleExpression: !Ref ScheduleExpression
@@ -170,9 +198,13 @@ Resources:
   # ---- Mailer (outside the VPC)
   MailerLogGroup:
     Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties: {LogGroupName: !Sub "/${ProjectName}/report-mailer", RetentionInDays: 7}
   MailerRole:
     Type: AWS::IAM::Role
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
@@ -191,6 +223,8 @@ Resources:
               - {Effect: Allow, Action: ["ses:SendEmail", "ses:SendRawEmail"], Resource: "*"}
   MailerFunction:
     Type: AWS::Lambda::Function
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       FunctionName: !Sub ${ProjectName}-report-mailer
       Runtime: python3.13
@@ -232,6 +266,8 @@ Resources:
   # ---- SES (sandbox: verify the address via the email AWS sends)
   Identity:
     Type: AWS::SES::EmailIdentity
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties: {EmailIdentity: !Ref ReportEmail}
 
 Outputs:

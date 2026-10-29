@@ -14,3 +14,8 @@ dist/
 *.tfstate.*
 crash.log
 crash.*.log
+
+infra/mailer.zip
+infra/.terraform/
+*.tfstate
+*.tfstate.*
