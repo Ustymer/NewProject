@@ -7,3 +7,10 @@ node_modules/
 dist/
 .idea/
 .DS_Store
+
+# Terraform local state and working directory
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
