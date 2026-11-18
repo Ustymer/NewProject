@@ -13,11 +13,11 @@ if [ "$ACTION" = "stop-db" ]; then
   echo "==> Stopping Cloud SQL instance to eliminate compute billing..."
   if terraform output cloud_sql_instance_name >/dev/null 2>&1; then
     DB_NAME="$(terraform output -raw cloud_sql_instance_name)"
-    PROJECT_ID="$(terraform output -raw cloud_run_url | sed -E 's|https://[^.]+\.([^.]+)\.run\.app.*|\1|' 2>/dev/null || true)"
+    PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
     if [ -z "$PROJECT_ID" ]; then
-      PROJECT_ID="$(gcloud config get-value project 2>/dev/null || true)"
+      PROJECT_ID="spry-ustym-2026-515122"
     fi
-    gcloud sql instances patch "$DB_NAME" --activation-policy=NEVER --project="$PROJECT_ID"
+    gcloud sql instances patch "$DB_NAME" --activation-policy=NEVER --project="$PROJECT_ID" --quiet
     echo "Cloud SQL instance $DB_NAME is now stopped. Storage will continue to bill ~$1.70/month."
     echo "To restart it, run: ./gcp/cleanup.sh start-db"
   else
@@ -27,13 +27,20 @@ if [ "$ACTION" = "stop-db" ]; then
 elif [ "$ACTION" = "start-db" ]; then
   echo "==> Resuming Cloud SQL instance..."
   DB_NAME="$(terraform output -raw cloud_sql_instance_name)"
-  PROJECT_ID="$(gcloud config get-value project 2>/dev/null || true)"
-  gcloud sql instances patch "$DB_NAME" --activation-policy=ALWAYS --project="$PROJECT_ID"
+  PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
+  if [ -z "$PROJECT_ID" ]; then
+    PROJECT_ID="spry-ustym-2026-515122"
+  fi
+  gcloud sql instances patch "$DB_NAME" --activation-policy=ALWAYS --project="$PROJECT_ID" --quiet
   echo "Cloud SQL instance $DB_NAME has resumed."
 
 elif [ "$ACTION" = "destroy" ]; then
   echo "==> Destroying all GCP resources with Terraform..."
-  terraform destroy -auto-approve
+  PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
+  if [ -z "$PROJECT_ID" ]; then
+    PROJECT_ID="spry-ustym-2026-515122"
+  fi
+  terraform destroy -auto-approve -var="gcp_project_id=$PROJECT_ID"
   echo "All resources destroyed successfully."
 
 else
