@@ -1,0 +1,11 @@
+# Example Terraform variables for GCP deployment
+gcp_project_id       = "spry-ustymer-2026"
+gcp_region           = "us-central1"
+project_name         = "spry"
+db_tier              = "db-f1-micro"
+db_name              = "meetings"
+db_user              = "meetings"
+db_activation_policy = "ALWAYS"
+# Once your backend image is pushed to Artifact Registry, set:
+# backend_image = "us-central1-docker.pkg.dev/spry-ustymer-2026/spry-repo/backend:latest"
+cors_origins         = "*"

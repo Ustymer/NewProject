@@ -9,13 +9,17 @@ dist/
 .DS_Store
 
 # Terraform local state and working directory
-**/.terraform/*
+**/.terraform/
+**/.terraform.lock.hcl.bak
 *.tfstate
 *.tfstate.*
 crash.log
 crash.*.log
-
 infra/mailer.zip
-infra/.terraform/
-*.tfstate
-*.tfstate.*
+infra/terraform.tfvars
+gcp/terraform.tfvars
+.firebaserc
+firebase-debug.log*
+
+lab8/day.jsonl
+lab8/.cloud_state.json

@@ -120,3 +120,23 @@ parse: ## Parse an agenda: make parse TEXT="..."
 infra-plan: ## Check the Terraform code (fmt + validate). The real plan and apply run in HCP Terraform after a push
 	cd infra && terraform fmt -check -recursive && terraform init -backend=false -input=false >/dev/null && terraform validate
 	@echo "Plan and apply run in HCP Terraform (workspace new-project-lab7) after a push or merge. No terraform apply here."
+
+# --- GCP Targets ---
+.PHONY: gcp-deploy gcp-plan gcp-apply gcp-stop-db gcp-start-db gcp-destroy
+gcp-plan: ## Format and validate GCP Terraform code
+	cd gcp && terraform fmt -check -recursive
+
+gcp-deploy: ## Deploy Spry to Google Cloud Platform (Terraform + Cloud Run + Firebase)
+	./gcp/deploy.sh
+
+gcp-apply: ## Apply GCP Terraform configuration directly
+	cd gcp && terraform apply
+
+gcp-stop-db: ## Stop Cloud SQL instance to eliminate compute billing
+	./gcp/cleanup.sh stop-db
+
+gcp-start-db: ## Resume Cloud SQL instance
+	./gcp/cleanup.sh start-db
+
+gcp-destroy: ## Destroy all GCP resources
+	./gcp/cleanup.sh destroy
