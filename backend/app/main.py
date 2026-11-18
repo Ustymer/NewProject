@@ -43,3 +43,11 @@ if os.getenv("REPORTS_WORKER"):
     from app.reports.events import router as events_router  # noqa: E402
 
     app.include_router(events_router)
+
+# Mount frontend static files if present (for single-origin deployment on Cloud Run)
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend_dist")
+if os.path.exists(frontend_dir):
+    app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")
+
